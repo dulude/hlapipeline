@@ -11,6 +11,7 @@ from drizzlepac import updatehdr
 import glob
 import math
 import numpy as np
+import pickle
 import os
 import pdb
 from stsci.tools import fileutil
@@ -124,7 +125,7 @@ def convert_string_tf_to_boolean(invalue):
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-def perform_align(input_list, archive=False, clobber=False, update_hdr_wcs=False):
+def perform_align(input_list, archive=False, clobber=False, makeplots=False, update_hdr_wcs=False):
     """Main calling function.
 
     Parameters
@@ -137,6 +138,9 @@ def perform_align(input_list, archive=False, clobber=False, update_hdr_wcs=False
 
     clobber : Boolean
         Download and overwrite existing local copies of input files?
+
+    makeplots : Boolean
+        Generate 2-d vector plots?
 
     update_hdr_wcs : Boolean
         Write newly computed WCS information to image image headers?
@@ -205,7 +209,20 @@ def perform_align(input_list, archive=False, clobber=False, update_hdr_wcs=False
         # 5: Extract catalog of observable sources from each input image
             print("-------------------- STEP 5: Source finding --------------------")
             if not extracted_sources:
-                extracted_sources = generate_source_catalogs(processList)
+                # extracted_sources = generate_source_catalogs(processList) # TODO: uncomment this once debugging is done
+
+                pickle_filename = "{}.source_catalog.pickle".format(processList[0]) # TODO: All this pickle stuff is only here for debugging. <START>
+                if os.path.exists(pickle_filename):
+                    pickle_in = open(pickle_filename, "rb")
+                    extracted_sources = pickle.load(pickle_in)
+                    print("Using sourcelist extracted from {} generated during the last run to save time.".format(pickle_filename))
+                else:
+                    extracted_sources = generate_source_catalogs(processList)
+                    pickle_out = open(pickle_filename, "wb")
+                    pickle.dump(extracted_sources, pickle_out)
+                    pickle_out.close()
+                    print("Wrote ",pickle_filename)# TODO: All this pickle stuff is only here for debugging. <END>
+
                 for imgname in extracted_sources.keys():
                     table=extracted_sources[imgname]["catalog_table"]
                     # The catalog of observable sources must have at least MIN_OBSERVABLE_THRESHOLD entries to be useful
@@ -261,7 +278,8 @@ def perform_align(input_list, archive=False, clobber=False, update_hdr_wcs=False
                         print("{} : {}".format(tweakwcs_info_key,item.meta['tweakwcs_info'][tweakwcs_info_key]))
                 # print("Radial shift: {}".format(math.sqrt(item.meta['tweakwcs_info']['shift'][0]**2+item.meta['tweakwcs_info']['shift'][1]**2)))
                 print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-
+                if makeplots == True and num_xmatches >= MIN_CROSS_MATCHES: #make vector plots
+                    generate_vector_plot(item,image_name)
                 if num_xmatches < MIN_CROSS_MATCHES:
                     if catalogIndex < numCatalogs-1:
                         print("Not enough cross matches found between astrometric catalog and sources found in images")
@@ -392,6 +410,29 @@ def generate_source_catalogs(imglist, **pars):
 
 # ----------------------------------------------------------------------------------------------------------------------
 
+def generate_vector_plot(tweakwcs_output,imagename):
+    """Performs all nessessary coord transforms and array generations in preperation for the call of subroutine
+        makeVectorPLot().
+
+    tweakwcs_output : list
+        a single entry from the tweakwcs output list "imglist".
+
+    imagename: string
+        name of the image being plotted
+
+    Returns
+    =======
+    Nothing.
+    """
+    print("PLOT GOES HERE!")
+
+
+
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+
 
 def update_image_wcs_info(tweakwcs_output,imagelist):
     """Write newly computed WCS information to image headers
@@ -429,6 +470,7 @@ def update_image_wcs_info(tweakwcs_output,imagelist):
     hdulist.close()
 
 
+
 # ======================================================================================================================
 
 
@@ -444,6 +486,9 @@ if __name__ == '__main__':
 
     PARSER.add_argument( '-c', '--clobber', required=False,choices=['True','False'],default='False',help='Download and '
                     'overwrite existing local copies of input files? Unless explicitly set, the default is "False".')
+
+    PARSER.add_argument( '-p', '--makeplots', required=False,choices=['True','False'],default='False',help='Generate 2-d '
+                    'vector plots? Unless explicitly set, the default is "False".')
 
     PARSER.add_argument( '-u', '--update_hdr_wcs', required=False,choices=['True','False'],default='False',help='Write '
                     'newly computed WCS information to image image headers? Unless explicitly set, the default is '
@@ -465,7 +510,9 @@ if __name__ == '__main__':
 
     clobber = convert_string_tf_to_boolean(ARGS.clobber)
 
+    makeplots = update_hdr_wcs = convert_string_tf_to_boolean(ARGS.makeplots)
+
     update_hdr_wcs = convert_string_tf_to_boolean(ARGS.update_hdr_wcs)
     # Get to it!
-    return_value = perform_align(input_list,archive,clobber,update_hdr_wcs)
+    return_value = perform_align(input_list,archive,clobber,makeplots,update_hdr_wcs)
 
