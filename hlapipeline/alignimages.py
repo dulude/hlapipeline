@@ -243,8 +243,9 @@ def perform_align(input_list, archive=False, clobber=False, makeplots=False, upd
         # 6: Cross-match source catalog with astrometric reference source catalog, Perform fit between source catalog and reference catalog
             print("-------------------- STEP 6: Cross matching and fitting --------------------")
             # Specify matching algorithm to use
+            tol = 100.0
             match = tweakwcs.TPMatch(searchrad=250, separation=0.1,
-                                     tolerance=100, use2dhist=False)
+                                     tolerance=tol, use2dhist=False)
             # Align images and correct WCS
             tweakwcs.tweak_image_wcs(imglist, reference_catalog, match=match)
 
@@ -265,6 +266,7 @@ def perform_align(input_list, archive=False, clobber=False, makeplots=False, upd
                         return (1)
                 max_rms_val = max(item.meta['tweakwcs_info']['rms'])
                 num_xmatches = item.meta['tweakwcs_info']['nmatches']
+                radial_shift = math.sqrt(item.meta['tweakwcs_info']['shift'][0] ** 2 + item.meta['tweakwcs_info']['shift'][1] ** 2)
                 # print fit params to screen
                 print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FIT PARAMETERS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
                 if item.meta['chip'] == 1:
@@ -276,7 +278,8 @@ def perform_align(input_list, archive=False, clobber=False, makeplots=False, upd
                 for tweakwcs_info_key in tweakwcs_info_keys:
                     if not tweakwcs_info_key.startswith("matched"):
                         print("{} : {}".format(tweakwcs_info_key,item.meta['tweakwcs_info'][tweakwcs_info_key]))
-                # print("Radial shift: {}".format(math.sqrt(item.meta['tweakwcs_info']['shift'][0]**2+item.meta['tweakwcs_info']['shift'][1]**2)))
+                print("tweakwcs.TPMatch tolerance: {}".format(tol))
+                print("Radial shift: {}".format(radial_shift))
                 print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
                 if makeplots == True and num_xmatches >= MIN_CROSS_MATCHES: #make vector plots
                     generate_vector_plot(item,image_name)
