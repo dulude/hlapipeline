@@ -126,7 +126,7 @@ def convert_string_tf_to_boolean(invalue):
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-def perform_align(input_list, archive=False, clobber=False, makeplots=False, update_hdr_wcs=False):
+def perform_align(input_list, archive=False, clobber=False, makeplots=False, plotdest='screen',update_hdr_wcs=False):
     """Main calling function.
 
     Parameters
@@ -218,7 +218,7 @@ def perform_align(input_list, archive=False, clobber=False, makeplots=False, upd
                     extracted_sources = pickle.load(pickle_in)
                     print("Using sourcelist extracted from {} generated during the last run to save time.".format(pickle_filename))
                 else:
-                    extracted_sources = generate_source_catalogs(processList,output=True)
+                    extracted_sources = generate_source_catalogs(processList,output=True) #TODO: ADD TO INPUT PARAMS!
                     pickle_out = open(pickle_filename, "wb")
                     pickle.dump(extracted_sources, pickle_out)
                     pickle_out.close()
@@ -283,7 +283,7 @@ def perform_align(input_list, archive=False, clobber=False, makeplots=False, upd
                 print("Radial shift: {}".format(radial_shift))
                 print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
                 if makeplots == True and num_xmatches >= MIN_CROSS_MATCHES: #make vector plots
-                    generate_vector_plot(item,image_name)
+                    generate_vector_plot(item,image_name+"[SCI,{}]".format(item.meta['chip']),plotDest=plotdest)
                 if num_xmatches < MIN_CROSS_MATCHES:
                     if catalogIndex < numCatalogs-1:
                         print("Not enough cross matches found between astrometric catalog and sources found in images")
@@ -415,7 +415,7 @@ def generate_source_catalogs(imglist, **pars):
 
 # ----------------------------------------------------------------------------------------------------------------------
 
-def generate_vector_plot(tweakwcs_output,imagename):
+def generate_vector_plot(tweakwcs_output,imagename,**pars):
     """Performs all nessessary coord transforms and array generations in preparation for the call of subroutine
         makeVectorPLot().
 
@@ -444,28 +444,43 @@ def generate_vector_plot(tweakwcs_output,imagename):
     plot_x_ra = np.stack((good_raw_x_coords,fake_x_coords))
     plot_y_ra = np.stack((good_raw_y_coords,fake_y_coords))
 
-    makeVectorPlot(plot_x_ra,plot_y_ra)
+    makeVectorPlot(plot_x_ra,plot_y_ra,imagename,**pars)
 
 
 
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-def makeVectorPlot(x,y,plotDest="screen",binThresh = 10000,binSize=250):
-    """
-    Generate vector plot of dx and dy values vs. reference (x,y) positions
+def makeVectorPlot(x,y,imagename,plotDest="screen",binThresh = 10000,binSize=250):
+    """Generate vector plot of dx and dy values vs. reference (x,y) positions
 
-    :param x: A 2 x n sized numpy array. Column 1: matched reference X values. Column 2: The corresponding matched comparision X values
-    :param y: A 2 x n sized numpy array. Column 1: matched reference Y values. Column 2: The corresponding matched comparision Y values
-    :param plotDest: plot destination; screen or file
-    :param binThresh: Minimum size of list *x* and *y* that will trigger generation of a binned vector plot. Default value = 10000.
-    :param binSize: Size of binning box in pixels. When generating a binned vector plot, mean dx and dy values are computed by taking the mean of all points located within the box. Default value = 250.
-    :type x: numpy.ndarray
-    :type y: numpy.ndarray
-    :type plotDest: string
-    :type binThresh: integer
-    :type binSize: integer
-    :return: nothing
+    x : numpy.ndarray
+        A 2 x n sized numpy array. Column 1: matched reference X values. Column 2: The corresponding matched
+        comparision X values
+
+    y : numpy.ndarray
+        A 2 x n sized numpy array. Column 1: matched reference Y values. Column 2: The corresponding matched
+        comparision Y values
+
+    imagename : string
+        Image name and chip number whose fit residuals are being plotted, using the following syntax:
+        <IMAGE NAME>[SCI,<CHIP NUMBER>]
+
+    plot : string
+        plot destination: 'screen' or 'file'; 'screen' displays the plot in an interactive plotting window; 'file'
+        saves the plot as a pdf file with the following file naming syntax:
+        <IPPSSOOT>_sci<CHIP NUMBER>_xy_vector_plot.pdf. Default is 'screen'.
+
+    binThresh : integer
+        Minimum size of list *x* and *y* that will trigger generation of a binned vector plot. Default value = 10000.
+
+    binSize : integer
+        Size of binning box in pixels. When generating a binned vector plot, mean dx and dy values are computed by
+        taking the mean of all points located within the box. Default value = 250.
+
+    Returns
+    =======
+    Nothing.
     """
     dx = x[1, :] - x[0, :]
     dy = y[1, :] - y[0, :]
@@ -521,16 +536,17 @@ def makeVectorPlot(x,y,plotDest="screen",binThresh = 10000,binSize=250):
     if len(dx) > binThresh: Q = plt.quiver(p_x, p_y, p_dx, p_dy,color=color_ra,units="xy")
     else: Q = plt.quiver(p_x, p_y, p_dx, p_dy)
     plt.quiverkey(Q, 0.75, 0.05, plt_scaleValue, r'%5.3f'%(plt_scaleValue), labelpos='S', coordinates='figure', color="k")
-    plot_title="Comparision - reference $\Delta X$, $\Delta Y$ values vs. $(X_{ref}, Y_{ref})$ positions\n%s%s" % (binStatus,lowSampleWarning)
+    plot_title="%s fit residuals vs. $(X_{ref}, Y_{ref})$ positions\n%s%s"%(imagename,binStatus,lowSampleWarning)
     plt.title(plot_title)
     plt.xlabel(r"$X_{ref}$")
     plt.ylabel(r"$Y_{ref}$")
     if plotDest == "screen":
         plt.show()
     if plotDest == "file":
-        plt.savefig("xy_vector_plot.pdf")
+        plot_file_name = "{}_sci{}_xy_vector_plot.pdf".format(imagename[:9], imagename.split("[SCI,")[1][0])
+        plt.savefig(plot_file_name)
         plt.close()
-        print("Vector plot saved to file xy_vector_plot.pdf")
+        print("Vector plot saved to file {}".format(plot_file_name))
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -589,8 +605,14 @@ if __name__ == '__main__':
     PARSER.add_argument( '-c', '--clobber', required=False,choices=['True','False'],default='False',help='Download and '
                     'overwrite existing local copies of input files? Unless explicitly set, the default is "False".')
 
-    PARSER.add_argument( '-p', '--makeplots', required=False,choices=['True','False'],default='False',help='Generate 2-d '
-                    'vector plots? Unless explicitly set, the default is "False".')
+    PARSER.add_argument( '-p', '--makeplots', required=False,choices=['True','False'],default='False',help='Generate 2-d'
+                    ' vector plots? Unless explicitly set, the default is "False".')
+
+    PARSER.add_argument('-pd', '--plotdest', required=False, choices=['screen', 'file'], default='screen',
+                        help='Vector plot destination: "screen" or "file"; "screen" displays the plot in an interactive'
+                             ' plotting window; "file" saves the plot as a pdf file with the following file naming '
+                             'syntax: <IPPSSOOT>_sci<CHIP NUMBER>_xy_vector_plot.pdf. Default is "screen". '
+                             'NOTE: This parameter is only relevant if plots are going to be generated.')
 
     PARSER.add_argument( '-u', '--update_hdr_wcs', required=False,choices=['True','False'],default='False',help='Write '
                     'newly computed WCS information to image image headers? Unless explicitly set, the default is '
@@ -616,5 +638,5 @@ if __name__ == '__main__':
 
     update_hdr_wcs = convert_string_tf_to_boolean(ARGS.update_hdr_wcs)
     # Get to it!
-    return_value = perform_align(input_list,archive,clobber,makeplots,update_hdr_wcs)
+    return_value = perform_align(input_list,archive,clobber,makeplots,ARGS.plotdest,update_hdr_wcs)
 
