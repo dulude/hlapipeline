@@ -415,7 +415,7 @@ def generate_source_catalogs(imglist, **pars):
 # ----------------------------------------------------------------------------------------------------------------------
 
 def generate_vector_plot(tweakwcs_output,imagename):
-    """Performs all nessessary coord transforms and array generations in preperation for the call of subroutine
+    """Performs all nessessary coord transforms and array generations in preparation for the call of subroutine
         makeVectorPLot().
 
     tweakwcs_output : list
@@ -428,11 +428,93 @@ def generate_vector_plot(tweakwcs_output,imagename):
     =======
     Nothing.
     """
-    print("PLOT GOES HERE!")
+    pdb.set_trace()
 
 
 
+# ----------------------------------------------------------------------------------------------------------------------
 
+
+def makeVectorPlot(x,y,plotDest="screen",binThresh = 10000,binSize=250):
+    """
+    Generate vector plot of dx and dy values vs. reference (x,y) positions
+
+    :param x: A 2 x n sized numpy array. Column 1: matched reference X values. Column 2: The corresponding matched comparision X values
+    :param y: A 2 x n sized numpy array. Column 1: matched reference Y values. Column 2: The corresponding matched comparision Y values
+    :param plotDest: plot destination; screen or file
+    :param binThresh: Minimum size of list *x* and *y* that will trigger generation of a binned vector plot. Default value = 10000.
+    :param binSize: Size of binning box in pixels. When generating a binned vector plot, mean dx and dy values are computed by taking the mean of all points located within the box. Default value = 250.
+    :type x: numpy.ndarray
+    :type y: numpy.ndarray
+    :type plotDest: string
+    :type binThresh: integer
+    :type binSize: integer
+    :return: nothing
+    """
+    dx = x[1, :] - x[0, :]
+    dy = y[1, :] - y[0, :]
+    if len(dx)>binThresh:# if the input list is larger than binThresh, a binned vector plot will be generated.
+        binStatus = "%d x %d Binning"%(binSize,binSize)
+        print "Input list length greater than threshold length value. Generating binned vector plot using %d pixel x %d pixel bins"%(binSize,binSize)
+        if min(x[0,:])<0.0: xmin=min(x[0,:])
+        else: xmin = 0.0
+        if min(y[0,:])<0.0: ymin=min(y[0,:])
+        else: ymin = 0.0
+
+        p_x=np.empty(shape=[0])
+        p_y=np.empty(shape=[0])
+        p_dx=np.empty(shape=[0])
+        p_dy=np.empty(shape=[0])
+        color_ra=[]
+        for xBinCtr in range(int(round2ArbatraryBase(xmin,"down",binSize)),int(round2ArbatraryBase(max(x[0,:]),"up",binSize)),binSize):
+            for yBinCtr in range(int(round2ArbatraryBase(ymin, "down", binSize)),
+                                 int(round2ArbatraryBase(max(y[0, :]), "up", binSize)), binSize):
+                #define bin box x,y upper and lower bounds
+                xBinMin=xBinCtr
+                xBinMax=xBinMin+binSize
+                yBinMin=yBinCtr
+                yBinMax=yBinMin+binSize
+                #get indicies of x and y withen bounding box
+                ix0 = np.where((x[0,:] >= xBinMin) & (x[0,:] < xBinMax) & (y[0,:] >= yBinMin) & (y[0,:] < yBinMax))
+                if len(dx[ix0]) > 0 and len(dy[ix0]) > 0: #ignore empty bins
+                    p_x=np.append(p_x, xBinCtr + 0.5 * binSize) #X and Y posotion at center of bin.
+                    p_y=np.append(p_y, yBinCtr + 0.5 * binSize)
+                    mean_dx=np.mean(dx[ix0])
+                    p_dx=np.append(p_dx, mean_dx) #compute mean dx, dy values
+                    mean_dy = np.mean(dy[ix0])
+                    p_dy=np.append(p_dy,mean_dy)
+                    avg_npts=(float(len(dx[ix0]))+float(len(dy[ix0])))/2.0 #keep an eye out for mean values computed from less than 10 samples.
+                    if (avg_npts<10.0): #if less than 10 samples were used in mean calculation, color the vector red.
+                        color_ra.append('r')
+                    else:
+                        color_ra.append('k')
+        lowSampleWarning = ""
+        if "r" in color_ra: lowSampleWarning = "; Red Vectors were computed with less than 10 values"
+    else:
+        print "Generating unbinned vector plot"
+        binStatus = "Unbinned"
+        lowSampleWarning = ""
+        color_ra=["k"]
+        p_x=x[0,:]
+        p_y = y[0, :]
+        p_dx=dx
+        p_dy=dy
+    plt_mean = np.mean(np.hypot(p_dx, p_dy))
+    e = np.log10(5.0*plt_mean).round()
+    plt_scaleValue=10**e
+    if len(dx) > binThresh: Q = plt.quiver(p_x, p_y, p_dx, p_dy,color=color_ra,units="xy")
+    else: Q = plt.quiver(p_x, p_y, p_dx, p_dy)
+    plt.quiverkey(Q, 0.75, 0.05, plt_scaleValue, r'%5.3f'%(plt_scaleValue), labelpos='S', coordinates='figure', color="k")
+    plot_title="Comparision - reference $\Delta X$, $\Delta Y$ values vs. $(X_{ref}, Y_{ref})$ positions\n%s%s" % (binStatus,lowSampleWarning)
+    plt.title(plot_title)
+    plt.xlabel(r"$X_{ref}$")
+    plt.ylabel(r"$Y_{ref}$")
+    if plotDest == "screen":
+        plt.show()
+    if plotDest == "file":
+        plt.savefig("xy_vector_plot.pdf")
+        plt.close()
+        print "Vector plot saved to file xy_vector_plot.pdf"
 
 # ----------------------------------------------------------------------------------------------------------------------
 
