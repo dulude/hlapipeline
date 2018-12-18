@@ -10,6 +10,7 @@ from collections import OrderedDict
 from drizzlepac import updatehdr
 import glob
 import math
+import matplotlib.pyplot as plt
 import numpy as np
 import pickle
 import os
@@ -217,7 +218,7 @@ def perform_align(input_list, archive=False, clobber=False, makeplots=False, upd
                     extracted_sources = pickle.load(pickle_in)
                     print("Using sourcelist extracted from {} generated during the last run to save time.".format(pickle_filename))
                 else:
-                    extracted_sources = generate_source_catalogs(processList)
+                    extracted_sources = generate_source_catalogs(processList,output=True)
                     pickle_out = open(pickle_filename, "wb")
                     pickle.dump(extracted_sources, pickle_out)
                     pickle_out.close()
@@ -428,7 +429,22 @@ def generate_vector_plot(tweakwcs_output,imagename):
     =======
     Nothing.
     """
-    pdb.set_trace()
+    # 1: extract x and y values from catalog
+    raw_x_coords = np.asarray(tweakwcs_output.meta['catalog']['x'].data)
+    raw_y_coords = np.asarray(tweakwcs_output.meta['catalog']['y'].data)
+    # 2: list of indicies of matched catalog entries, extract them from the catalog
+    good_idx_list = list(range(len(raw_x_coords))) # TODO: this is just a place holder until I nail down the mappings.
+    good_raw_x_coords = np.take(raw_x_coords,good_idx_list)
+    good_raw_y_coords = np.take(raw_y_coords,good_idx_list)
+
+    fake_x_coords = good_raw_x_coords+1.0 #TODO: Figure out transfomrations
+    fake_y_coords = good_raw_y_coords + 2.0 #TODO: Figure out transfomrations
+
+    #get the x and y values into the form used by the makeVectorPlot() subroutine.
+    plot_x_ra = np.stack((good_raw_x_coords,fake_x_coords))
+    plot_y_ra = np.stack((good_raw_y_coords,fake_y_coords))
+
+    makeVectorPlot(plot_x_ra,plot_y_ra)
 
 
 
@@ -455,7 +471,7 @@ def makeVectorPlot(x,y,plotDest="screen",binThresh = 10000,binSize=250):
     dy = y[1, :] - y[0, :]
     if len(dx)>binThresh:# if the input list is larger than binThresh, a binned vector plot will be generated.
         binStatus = "%d x %d Binning"%(binSize,binSize)
-        print "Input list length greater than threshold length value. Generating binned vector plot using %d pixel x %d pixel bins"%(binSize,binSize)
+        print("Input list length greater than threshold length value. Generating binned vector plot using {} pixel x {} pixel bins".format(binSize,binSize))
         if min(x[0,:])<0.0: xmin=min(x[0,:])
         else: xmin = 0.0
         if min(y[0,:])<0.0: ymin=min(y[0,:])
@@ -491,7 +507,7 @@ def makeVectorPlot(x,y,plotDest="screen",binThresh = 10000,binSize=250):
         lowSampleWarning = ""
         if "r" in color_ra: lowSampleWarning = "; Red Vectors were computed with less than 10 values"
     else:
-        print "Generating unbinned vector plot"
+        print("Generating unbinned vector plot")
         binStatus = "Unbinned"
         lowSampleWarning = ""
         color_ra=["k"]
@@ -514,7 +530,7 @@ def makeVectorPlot(x,y,plotDest="screen",binThresh = 10000,binSize=250):
     if plotDest == "file":
         plt.savefig("xy_vector_plot.pdf")
         plt.close()
-        print "Vector plot saved to file xy_vector_plot.pdf"
+        print("Vector plot saved to file xy_vector_plot.pdf")
 
 # ----------------------------------------------------------------------------------------------------------------------
 
