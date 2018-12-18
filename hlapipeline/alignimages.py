@@ -630,13 +630,15 @@ if __name__ == '__main__':
         else:
             input_list.append(item)
 
+    # convert text true/false values to Booleans
     archive = convert_string_tf_to_boolean(ARGS.archive)
 
     clobber = convert_string_tf_to_boolean(ARGS.clobber)
 
-    makeplots = update_hdr_wcs = convert_string_tf_to_boolean(ARGS.makeplots)
+    makeplots = convert_string_tf_to_boolean(ARGS.makeplots)
 
     update_hdr_wcs = convert_string_tf_to_boolean(ARGS.update_hdr_wcs)
+
     # Get to it!
     return_value = perform_align(input_list,archive,clobber,makeplots,ARGS.plotdest,update_hdr_wcs)
 
