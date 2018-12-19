@@ -30,20 +30,28 @@ from astropy.table import Table
 msgunit = sys.stdout
 
 def run(source_list_dict, minimum_match=10, xref=0.0, yref=0.0, postarg=None):
-    """
-    Match source lists in x,y coordinates allowing for possible shift & rotation
+    """Match source lists in x,y coordinates allowing for possible shift & rotation
 
-    :param source_list_dict: dictionary indexed by coo filename with number of sources in each file as value
-    :param minimum_match: minimum number of matches in peak. Default value = '10'.
-    :param xref: X reference pixel in image (default 0, which is a very bad value if image rotates) 
-    :param yref: Y reference pixel in image (default 0, which is a very bad value if image rotates) 
-    :param postarg: dictionary indexed by coo filename with (dx, dy) in pixels for postarg (default is to read FITS headers)
-    :type source_list_dict: dictionary
-    :type minimum_match: integer
-    :type xref: float
-    :type yref: float
-    :type postarg: dictionary
-    :returns: dictionary of lists of matching sourcelist indicies indexed by coo filename.
+    Parameters
+    ----------
+    source_list_dict : dictionary
+        dictionary indexed by coo filename with number of sources in each file as value
+
+    minimum_match : integer
+        minimum number of matches in peak. Default value = '10'.
+
+    xref : float
+        X reference pixel in image (default 0, which is a very bad value if image rotates)
+
+    yref : float
+        Y reference pixel in image (default 0, which is a very bad value if image rotates)
+
+    postarg: dictionary
+        dictionary indexed by coo filename with (dx, dy) in pixels for postarg (default is to read FITS headers)
+
+    Returns
+    -------
+    dictionary of lists of matching sourcelist indices indexed by coo filename.
     """
     out_dict={}
     ### assumes list with greatest number of sources should be the reference file
