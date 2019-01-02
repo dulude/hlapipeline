@@ -699,9 +699,4 @@ if __name__ == '__main__':
     update_hdr_wcs = convert_string_tf_to_boolean(ARGS.update_hdr_wcs)
 
     # Get to it!
-<<<<<<< HEAD
     return_value = perform_align(input_list,archive,clobber,makeplots,ARGS.plotdest,update_hdr_wcs)
-
-=======
-    return_value = perform_align(input_list,archive,clobber,update_hdr_wcs)
->>>>>>> master
