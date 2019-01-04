@@ -455,6 +455,7 @@ def generate_vector_plot(tweakwcs_output,imagename,**pars):
     =======
     Nothing.
     """
+    pdb.set_trace()
     # 1: extract x and y values from catalog
     raw_x_coords = np.asarray(tweakwcs_output.meta['catalog']['x'].data)
     raw_y_coords = np.asarray(tweakwcs_output.meta['catalog']['y'].data)
@@ -549,7 +550,7 @@ def makeVectorPlot(x,y,imagename,plotDest="screen",binThresh = 10000,binSize=250
         if "r" in color_ra: lowSampleWarning = "; Red Vectors were computed with less than 10 values"
     else:
         print("Generating unbinned vector plot")
-        binStatus = "Unbinned"
+        binStatus = "*** Unbinned ***"
         lowSampleWarning = ""
         color_ra=["k"]
         p_x=x[0,:]
@@ -576,7 +577,31 @@ def makeVectorPlot(x,y,imagename,plotDest="screen",binThresh = 10000,binSize=250
 
 # ----------------------------------------------------------------------------------------------------------------------
 
+def round2ArbatraryBase(value,direction,roundingBase):
+    """Round value up or down to arbitrary base
 
+    Parameters
+    ----------
+    value: float
+        Value to be rounded.
+    direction: string
+        Round up, down to the nearest base (choices: "up","down","nearest")
+    roundingBase: integer
+        rounding base. (Example: if base = 5, values will be rounded to the nearest multiple of 5 or 10.)
+
+    Returns
+    -------
+    rv: integer
+        rounded value to be returned.
+    """
+    if direction.lower().startswith("u"):
+        rv=value+(roundingBase-value%roundingBase) #round up to nearest base
+    elif direction.lower().startswith("d"):
+        rv=value-value%roundingBase #round down to nearest base
+    else:
+        rv=int(roundingBase * round(float(value)/roundingBase)) #round up or down to nearest base
+    return rv
+#-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-
 
 def update_image_wcs_info(tweakwcs_output, imagelist):
     """Write newly computed WCS information to image headers
