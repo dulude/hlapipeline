@@ -309,7 +309,7 @@ def perform_align(input_list, archive=False, clobber=False, debug = False, makep
                 print("Radial shift: {}".format(radial_shift))
                 print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
                 if makeplots == True and num_xmatches >= MIN_CROSS_MATCHES: #make vector plots
-                    generate_vector_plot(item,image_name+"[SCI,{}]".format(item.meta['chip']),plotDest=plotdest)
+                    generate_vector_plot(item,image_name+"[SCI,{}]".format(item.meta['chip']),refwcs,plotDest=plotdest)
                 if num_xmatches < MIN_CROSS_MATCHES:
                     if catalogIndex < numCatalogs-1:
                         print("Not enough cross matches found between astrometric catalog and sources found in images")
@@ -441,7 +441,7 @@ def generate_source_catalogs(imglist, **pars):
 
 # ----------------------------------------------------------------------------------------------------------------------
 
-def generate_vector_plot(tweakwcs_output,imagename,**pars):
+def generate_vector_plot(tweakwcs_output,imagename,refwcs,**pars):
     """Performs all nessessary coord transforms and array generations in preparation for the call of subroutine
         makeVectorPLot().
 
@@ -451,29 +451,33 @@ def generate_vector_plot(tweakwcs_output,imagename,**pars):
     imagename: string
         name of the image being plotted
 
+    refwcs: Astropy wcs object
+        Composite reference WCS computed earlier in step 3 of perform_align().
+
     Returns
     =======
     Nothing.
     """
-    pdb.set_trace()
     # 1: extract x and y values from catalog
     raw_x_coords = np.asarray(tweakwcs_output.meta['catalog']['x'].data)
     raw_y_coords = np.asarray(tweakwcs_output.meta['catalog']['y'].data)
     # 2: list of indicies of matched catalog entries, extract them from the catalog
-    good_idx_list = list(range(len(raw_x_coords))) # TODO: this is just a place holder until I nail down the mappings.
+    good_idx_list = list(range(len(raw_x_coords))) # TODO: this is just a place holder until I nail down the mappings. remove once I know what's what.
     good_raw_x_coords = np.take(raw_x_coords,good_idx_list)
     good_raw_y_coords = np.take(raw_y_coords,good_idx_list)
 
-    fake_x_coords = good_raw_x_coords+1.0 #TODO: Figure out transfomrations
-    fake_y_coords = good_raw_y_coords + 2.0 #TODO: Figure out transfomrations
+    fake_x_coords = good_raw_x_coords+1.0 #TODO: this is just a place holder until I nail down the mappings. remove once I know what's what.
+    fake_y_coords = good_raw_y_coords + 2.0 #TODO: this is just a place holder until I nail down the mappings. remove once I know what's what.
+
+    sky_x_coords,sky_y_coords = tweakwcs_output.wcs.all_pix2world(good_raw_x_coords,good_raw_y_coords,1) # TODO: Make sure WCS origin is '1' and not something else
+    fit_x_coords,fit_y_coords = refwcs.all_world2pix(sky_x_coords,sky_y_coords,1)  # TODO: Make sure WCS origin is '1' and not something else
 
     #get the x and y values into the form used by the makeVectorPlot() subroutine.
-    plot_x_ra = np.stack((good_raw_x_coords,fake_x_coords))
-    plot_y_ra = np.stack((good_raw_y_coords,fake_y_coords))
+    plot_x_ra = np.stack((good_raw_x_coords,fit_x_coords))#fake_x_coords))
+    plot_y_ra = np.stack((good_raw_y_coords,fit_y_coords))#fake_y_coords))
 
+    #make the vector plot
     makeVectorPlot(plot_x_ra,plot_y_ra,imagename,**pars)
-
-
 
 # ----------------------------------------------------------------------------------------------------------------------
 
