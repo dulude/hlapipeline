@@ -477,12 +477,14 @@ def generate_vector_plot(tweakwcs_output,imagename,refwcs,**pars):
     plot_y_ra = np.stack((good_raw_y_coords,fit_y_coords))#fake_y_coords))
 
     #make the vector plot
-    makeVectorPlot(plot_x_ra,plot_y_ra,imagename,**pars)
+    dx = plot_x_ra[1, :] - plot_x_ra[0, :]
+    dy = plot_y_ra[1, :] - plot_y_ra[0, :]
+    makeVectorPlot(plot_x_ra,plot_y_ra,dx,dy,imagename,**pars)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-def makeVectorPlot(x,y,imagename,plotDest="screen",binThresh = 10000,binSize=250):
+def makeVectorPlot(x,y,dx,dy,imagename,plotDest="screen",binThresh = 10000,binSize=250):
     """Generate vector plot of dx and dy values vs. reference (x,y) positions
 
     x : numpy.ndarray
@@ -578,6 +580,8 @@ def makeVectorPlot(x,y,imagename,plotDest="screen",binThresh = 10000,binSize=250
         plt.savefig(plot_file_name)
         plt.close()
         print("Vector plot saved to file {}".format(plot_file_name))
+
+# ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
 
