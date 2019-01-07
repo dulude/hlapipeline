@@ -445,6 +445,8 @@ def generate_vector_plot(tweakwcs_output,imagename,refwcs,**pars):
     """Performs all nessessary coord transforms and array generations in preparation for the call of subroutine
         makeVectorPLot().
 
+    Parameters
+    ----------
     tweakwcs_output : list
         a single entry from the tweakwcs output list "imglist".
 
@@ -480,6 +482,7 @@ def generate_vector_plot(tweakwcs_output,imagename,refwcs,**pars):
     dx = plot_x_ra[1, :] - plot_x_ra[0, :]
     dy = plot_y_ra[1, :] - plot_y_ra[0, :]
     makeVectorPlot(plot_x_ra,plot_y_ra,dx,dy,imagename,**pars)
+    makeQuadVectorPlot(plot_x_ra[0, :],plot_y_ra[0, :],dx,dy,imagename,**pars)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -487,6 +490,8 @@ def generate_vector_plot(tweakwcs_output,imagename,refwcs,**pars):
 def makeVectorPlot(x,y,dx,dy,imagename,plotDest="screen",binThresh = 10000,binSize=250):
     """Generate vector plot of dx and dy values vs. reference (x,y) positions
 
+    Parameters
+    ----------
     x : numpy.ndarray
         A 2 x n sized numpy array. Column 1: matched reference X values. Column 2: The corresponding matched
         comparision X values
@@ -515,6 +520,8 @@ def makeVectorPlot(x,y,dx,dy,imagename,plotDest="screen",binThresh = 10000,binSi
     =======
     Nothing.
     """
+    # TODO: add 'dx' and 'dy' to 'parameters' section of docstring
+    # TODO: adjust scaling. unit vector too large, actual plotted vectors too small.
     dx = x[1, :] - x[0, :]
     dy = y[1, :] - y[0, :]
     if len(dx)>binThresh:# if the input list is larger than binThresh, a binned vector plot will be generated.
@@ -583,6 +590,64 @@ def makeVectorPlot(x,y,dx,dy,imagename,plotDest="screen",binThresh = 10000,binSi
 
 # ----------------------------------------------------------------------------------------------------------------------
 
+def makeQuadVectorPlot(x,y,dx,dy,imagename,plotDest="screen"):
+    # TODO: add makeQuadVectorPlot() docstring
+    # Calculate y axis upper and lower limits for plots
+    yLimScaleFactor = 0.1
+    yAxisMax_dx = max(abs(dx))
+    yAxisMax_dx=(yLimScaleFactor*yAxisMax_dx)+yAxisMax_dx
+    yAxisMax_dy =max(abs(dy))
+    yAxisMax_dy=(yLimScaleFactor*yAxisMax_dy)+yAxisMax_dy
+
+    #set up 2x2 matrix of scatter plots
+    fig, axs = plt.subplots(2, 2)
+    fig.subplots_adjust(left=0.11, right=0.98, wspace=0.4,hspace =0.31)
+    fig.suptitle("{} Fit Residuals".format(imagename))
+
+    # Upper left plot: x axis: x; y axis: dx
+    ax = axs[0, 0]
+    ax.scatter(x, dx,marker='.',s=5,color='k')
+    ax.axhline(linewidth=0.25, color='k')
+    ax.set_xlabel('x position (pixels)')
+    ax.set_ylabel('dx (pixels)')
+    ax.set_ylim(-1*yAxisMax_dx,yAxisMax_dx)
+    ax.grid(False)
+
+    # Upper right plot: x axis: x; y axis: dy
+    ax = axs[0, 1]
+    ax.scatter(x, dy,marker=".",s=5,color='k')
+    ax.axhline(linewidth=0.25, color='k')
+    ax.set_xlabel('x position (pixels)')
+    ax.set_ylabel('dy (pixels)')
+    ax.set_ylim(-1 * yAxisMax_dy, yAxisMax_dy)
+    ax.grid(False)
+
+    # # Lower left plot: x axis: y; y axis: dx
+    ax = axs[1, 0]
+    ax.scatter(y, dx,marker=".",s=5,color='k')
+    ax.axhline(linewidth=0.25, color='k')
+    ax.set_xlabel('y position (pixels)')
+    ax.set_ylabel('dx (pixels)')
+    ax.set_ylim(-1 * yAxisMax_dx, yAxisMax_dx)
+    ax.grid(False)
+
+    # # Lower right plot: x axis: y; y axis: dy
+    ax = axs[1, 1]
+    ax.scatter(y, dy,marker=".",s=5,color='k')
+    ax.axhline(linewidth=0.25, color='k')
+    ax.set_xlabel('y position (pixels)')
+    ax.set_ylabel('dy (pixels)')
+    ax.set_ylim(-1 * yAxisMax_dy, yAxisMax_dy)
+    ax.grid(False)
+
+    # display plot to screen or write to pdf file
+    if plotDest == "screen":
+        plt.show()
+    if plotDest == "file":
+        plot_file_name = "{}_sci{}_quad_vector_plot.pdf".format(imagename[:9], imagename.split("[SCI,")[1][0])
+        plt.savefig(plot_file_name)
+        plt.close()
+        print("Vector plot saved to file {}".format(plot_file_name))
 # ----------------------------------------------------------------------------------------------------------------------
 
 def round2ArbatraryBase(value,direction,roundingBase):
