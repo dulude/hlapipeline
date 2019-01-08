@@ -24,10 +24,12 @@ try:
     from hlapipeline.utils import astrometric_utils as amutils
     from hlapipeline.utils import astroquery_utils as aqutils
     from hlapipeline.utils import filter
+    from hlapipeline.utils import get_git_rev_info
 except:
     from utils import astrometric_utils as amutils
     from utils import astroquery_utils as aqutils
     from utils import filter
+    from utils import get_git_rev_info
 
 MIN_CATALOG_THRESHOLD = 3
 MIN_OBSERVABLE_THRESHOLD = 10
@@ -155,6 +157,22 @@ def perform_align(input_list, archive=False, clobber=False, debug = False, updat
     # Define astrometric catalog list in priority order
     catalogList = ['GAIADR2', 'GSC241']
     numCatalogs = len(catalogList)
+
+    # 0: print git info
+    print("-------------------- STEP 0: Display Git revision info  --------------------")
+    full_path = os.path.dirname(__file__)+"/utils"
+    repo_path=None
+    if "hlapipeline/hlapipeline" in full_path:
+        repo_path = full_path.split("hlapipeline/hlapipeline")[0]+"hlapipeline"
+    elif "hlapipeline" in full_path:
+        repo_path = full_path.split("hlapipeline")[0]+"hlapipeline"
+    else:
+        pass
+    if not os.path.exists(repo_path): repo_path = None # protect against non-existent paths
+    if repo_path:
+        get_git_rev_info.print_rev_id(repo_path) # Display git repository information
+    else:
+        print("WARNING: Unable to display Git repository revision information.")
 
     # 1: Interpret input data and optional parameters
     print("-------------------- STEP 1: Get data --------------------")
